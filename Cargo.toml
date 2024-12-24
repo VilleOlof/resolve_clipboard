@@ -1,0 +1,11 @@
+[package]
+name = "resolve_clipboard"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+resolve_api = { path = "../resolve_api" }
+arboard = "3.4.1"
+image = "0.25.5"
+tokio = { version = "1.42.0", features = ["full"] }
+directories = "5.0.1"
