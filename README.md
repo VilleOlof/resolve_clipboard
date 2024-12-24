@@ -7,7 +7,7 @@ Your easy way to paste images directly into DaVinci Resolve Studio.
 
 ## Installation
 
-1. Head over to the [Releases](https://github.com/VilleOlof/resolve_setup/releases) page and download the latest version.  
+1. Head over to the [Releases](https://github.com/VilleOlof/resolve_clipboard/releases) page and download the latest version.  
 2. Just run the executable when you want to paste an image into your mediapool.  
 
 Easy as that!
