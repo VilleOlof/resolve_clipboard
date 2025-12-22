@@ -17,6 +17,9 @@ Easy as that!
 The program will create a new folder in your mediapool called 'Clipboard' where it will store the images you paste.  
 The actual images are stored in `%APPDATA%/resolve_clipboards/{project}/{timestamp}.png`  
 
+This however can be overriden by setting `RESOLVE_CLIPBOARD_DIR` in your environmental variables.  
+Then the path would be `{RESOLVE_CLIPBOARD_DIR}/{project}/{timestamp}.png`.  
+
 ## Development
 
 Currently there is no way for other people to build and compile this project.  

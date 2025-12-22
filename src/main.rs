@@ -58,9 +58,18 @@ async fn main() {
 
 /// `%APPDATA%/resolve_clipboards/{project}/{timestamp}.png`
 fn get_path(project_name: &str) -> PathBuf {
-    let mut base = BaseDirs::new().unwrap().data_dir().to_path_buf();
+    // use a custom dir if the user provided one otherwise appdata
+    let mut base = if let Ok(custom_dir) = std::env::var("RESOLVE_CLIPBOARD_DIR") {
+        let path = PathBuf::from(custom_dir);
+        println!("Saving image to custom directory: '{}'", path.display());
+        path
+    } else {
+        let mut base = BaseDirs::new().unwrap().data_dir().to_path_buf();
+        base.push("resolve_clipboards");
 
-    base.push("resolve_clipboards");
+        base
+    };
+    // then continue with always adding project name & checking files
 
     base.push(project_name);
 
