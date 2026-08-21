@@ -1,6 +1,6 @@
 # Resolve Clipboard
 
-Your easy way to paste images directly into DaVinci Resolve Studio.  
+The easiest way to paste images directly into DaVinci Resolve Studio.
 
 > [!IMPORTANT]  
 > This only works on **Windows** with the **Studio** version of DaVinci Resolve.  
@@ -12,7 +12,7 @@ Your easy way to paste images directly into DaVinci Resolve Studio.
 
 Easy as that!
 
-## Other tidbits
+## Paths for Images
 
 The program will create a new folder in your mediapool called 'Clipboard' where it will store the images you paste.  
 The actual images are stored in `%APPDATA%/resolve_clipboards/{project}/{timestamp}.png`  
@@ -20,8 +20,10 @@ The actual images are stored in `%APPDATA%/resolve_clipboards/{project}/{timesta
 This however can be overriden by setting `RESOLVE_CLIPBOARD_DIR` in your environmental variables.  
 Then the path would be `{RESOLVE_CLIPBOARD_DIR}/{project}/{timestamp}.png`.  
 
-## Development
+## Building
 
-Currently there is no way for other people to build and compile this project.  
-This is due to that the dependency `resolve_api` is a work in progress project.  
-Just make an issue if you got any bugs or feature requests.  
+ensure you have [`rustc`](https://rust-lang.org/) and it's `cargo` toolchain.  
+
+```bash
+cargo build --release
+```

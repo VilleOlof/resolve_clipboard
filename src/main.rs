@@ -2,22 +2,32 @@ use std::{
     fs,
     path::PathBuf,
     thread::sleep,
-    time::{Duration, SystemTime, UNIX_EPOCH},
+    time::{Duration, Instant, SystemTime, UNIX_EPOCH},
 };
 
 use directories::BaseDirs;
 use image::RgbaImage;
-use resolve_api::{Folder, MediaPool, Project};
+use resolved::{ResolveConfig, prelude::*};
 
 const FOLDER_CLIPBOARD: &'static str = "Clipboard";
 const CLOSE_TIME: Duration = Duration::from_secs(5);
 
 #[tokio::main]
-async fn main() {
-    let project = Project::get_current_project().await.unwrap();
+async fn main() -> ResolveResult<()> {
+    let t = Instant::now();
+    let resolve = Resolve::new_with_config(&ResolveConfig::keep_globals()).await?;
 
-    let path = get_path(&project.get_name().await.unwrap());
+    let project = resolve
+        .store(script! {
+            local pm = self:GetProjectManager()
+            return pm:GetCurrentProject()
+        })
+        .await?;
 
+    let project_name: String = project.execute(script! { self:GetName() }).await?;
+    let path = get_path(&project_name);
+
+    let image_t = Instant::now();
     // get image
     let image_data = match arboard::Clipboard::new().unwrap().get_image() {
         Ok(data) => data,
@@ -26,7 +36,7 @@ async fn main() {
 
             sleep(CLOSE_TIME);
 
-            return;
+            return Ok(());
         }
     };
     let image = RgbaImage::from_raw(
@@ -39,21 +49,64 @@ async fn main() {
     image
         .save_with_format(&path, image::ImageFormat::Png)
         .unwrap();
+    let image_e = image_t.elapsed();
 
-    let mediapool = MediaPool::new(&project);
-    let mut root_folder = mediapool.get_root_folder().await.unwrap();
+    let media_pool = project
+        .store(script! {
+            return self:GetMediaPool()
+        })
+        .await?;
+    let root_folder = media_pool.store(script! { self:GetRootFolder() }).await?;
 
-    media_pool_folder(&mut root_folder, &mediapool).await;
+    media_pool_folder(&root_folder, &media_pool).await?;
 
-    // then import into that folder
-    mediapool
-        .import_media(&vec![path.to_str().unwrap().to_string().replace("\\", "/")])
-        .await
-        .unwrap();
+    let items = vec![path.to_str().unwrap().to_string().replace("\\", "/")];
+    media_pool
+        .execute::<()>(script! {
+            self:ImportMedia($items)
+            return nil
+        })
+        .await?;
 
-    println!("imported image into mediapool\nclosing in 5 seconds");
+    println!(
+        "imported image into mediapool in (t:{:?}, i:{:?})\nclosing in 5 seconds",
+        t.elapsed(),
+        image_e
+    );
 
     sleep(CLOSE_TIME);
+
+    Ok(())
+}
+
+async fn media_pool_folder(root: &ItemRef, media_pool: &ItemRef) -> ResolveResult<()> {
+    let mut maybe_folder: Option<ItemRef> = None;
+
+    let sub_folders = root.store_list(script! { self:GetSubFolderList() }).await?;
+    for item in &sub_folders.list() {
+        let name: String = item.execute(script! { self:GetName() }).await?;
+        if name == FOLDER_CLIPBOARD {
+            maybe_folder = Some(item.clone());
+            break;
+        }
+    }
+
+    if let Some(folder) = maybe_folder {
+        media_pool
+            .execute::<bool>(script! { self:SetCurrentFolder(@folder) })
+            .await?;
+    } else {
+        let folder = media_pool
+            .store(script! { self:AddSubFolder(@root, $FOLDER_CLIPBOARD) })
+            .await?;
+        media_pool
+            .execute::<bool>(script! { self:SetCurrentFolder(@folder) })
+            .await?;
+
+        println!("added new '{}' folder", FOLDER_CLIPBOARD);
+    }
+
+    Ok(())
 }
 
 /// `%APPDATA%/resolve_clipboards/{project}/{timestamp}.png`
@@ -87,29 +140,4 @@ fn get_path(project_name: &str) -> PathBuf {
     );
 
     base
-}
-
-async fn media_pool_folder(root: &mut Folder, mediapool: &MediaPool) {
-    // see if folder exists
-    let mut clipboard_folder: Option<Folder> = None;
-    for mut folder in root.get_subfolder_list().await.unwrap() {
-        // if clipboard exists, set to that
-        if folder.get_name().await.unwrap() == FOLDER_CLIPBOARD {
-            clipboard_folder = Some(folder);
-            break;
-        }
-    }
-
-    // if it exists, go into, otherwise add it
-    if let Some(folder) = clipboard_folder {
-        mediapool.set_current_folder(&folder).await.unwrap();
-    } else {
-        let folder = mediapool
-            .add_sub_folder(&root, &FOLDER_CLIPBOARD)
-            .await
-            .unwrap();
-        mediapool.set_current_folder(&folder).await.unwrap();
-
-        println!("added new '{}' folder", FOLDER_CLIPBOARD);
-    }
 }

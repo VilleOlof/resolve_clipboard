@@ -1,16 +1,25 @@
 [package]
 name = "resolve_clipboard"
-version = "0.1.2"
+version = "0.2.0"
 edition = "2024"
 
 [dependencies]
-resolve_api = { path = "../resolve_api" }
+resolved = { version = "0.1.1" }
 arboard = "3.6.1"
-image = "0.25.8"
-tokio = { version = "1.47.1", features = ["full"] }
-directories = "5.0.1"
+image = "0.25.10"
+tokio = { version = "1.53.1", features = ["full"] }
+directories = "6.0.0"
 
 [profile.dev]
 codegen-units = 1
 lto = false
 opt-level = "z"
+
+[profile.speed]
+inherits = "release"
+opt-level = 3
+lto = true
+codegen-units = 1
+debug = 0
+strip = "symbols"
+panic = "abort"
